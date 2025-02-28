@@ -4,68 +4,128 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Unlock Exclusive Content</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #121212;
+            color: #ffffff;
+            padding: 20px;
+        }
+        .container {
+            max-width: 400px;
+            margin: auto;
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(255, 255, 255, 0.1);
+        }
+        .lock-icon {
+            font-size: 50px;
+            margin-bottom: 10px;
+        }
+        .description {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        #watchButton {
+            background: #ff0000;
+            color: white;
+        }
+        #watchButton:hover {
+            background: #cc0000;
+        }
+        #unlockButton {
+            background: #444;
+            color: white;
+            cursor: not-allowed;
+        }
+        #unlockButton.enabled {
+            background: #00c853;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="lock-icon">🔒</div>
-    <p class="instructions">
-        1. Click **Watch & Follow to Get Content**.<br>
-        2. Follow the channel and **watch for at least 25 seconds**.<br>
-        3. Return to unlock the content.
-    </p>
+    <div class="container">
+        <div class="lock-icon">🔒</div>
+        <div class="description">
+            1. Click the <b>Watch & Follow to Get Content</b> button. <br>
+            2. Follow the channel and <b>watch for at least 25 seconds</b>. <br>
+            3. Return to unlock the content.
+        </div>
+        <button id="watchButton">Watch & Follow to Get Content</button>
+        <button id="unlockButton" disabled>Unlock Content</button>
+    </div>
 
-    <button id="watchButton" class="button watch-button">Watch & Follow to Get Content</button>
-    <button id="unlockButton" class="button unlock-button" disabled>🔓 Unlock Content</button>
-</div>
+    <script>
+        // Extract video ID from URL parameter
+        const params = new URLSearchParams(window.location.search);
+        const videoKey = params.get("id");
 
-<script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const videoKey = urlParams.get('id');
+        if (!videoKey) {
+            document.querySelector(".description").innerHTML = "Invalid link! No video found.";
+            document.getElementById("watchButton").style.display = "none";
+            document.getElementById("unlockButton").style.display = "none";
+        } else {
+            fetch("content.json")
+                .then(response => response.json())
+                .then(data => {
+                    if (!data[videoKey]) {
+                        document.querySelector(".description").innerHTML = "Video not found!";
+                        document.getElementById("watchButton").style.display = "none";
+                        document.getElementById("unlockButton").style.display = "none";
+                        return;
+                    }
 
-    if (!videoKey) {
-        alert("Invalid link. Please use a correct URL.");
-        throw new Error("Missing 'id' parameter");
-    }
+                    const videoInfo = data[videoKey][0]; // First entry for this video
+                    const youtubeUrl = `https://www.youtube.com/${videoInfo.type}/${videoInfo.videoId}`;
+                    const contentLink = videoInfo.contentLink;
 
-    fetch("content.json")
-        .then(response => response.json())
-        .then(data => {
-            if (!data[videoKey]) {
-                alert("Content not found.");
-                throw new Error("Invalid video key");
-            }
+                    let watchButton = document.getElementById("watchButton");
+                    let unlockButton = document.getElementById("unlockButton");
 
-            const entry = data[videoKey][0]; // Fetch corresponding content
-            const videoId = entry.videoId; // Same video for different keys
-            const contentLink = entry.contentLink;
-            const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+                    watchButton.addEventListener("click", function () {
+                        let newTab = window.open(youtubeUrl, "_blank");
 
-            let watchButton = document.getElementById("watchButton");
-            let unlockButton = document.getElementById("unlockButton");
-            let timerStarted = false;
+                        if (!newTab || newTab.closed || typeof newTab.closed == "undefined") {
+                            alert("Popup blocked! Please allow popups to watch the video.");
+                        } else {
+                            watchButton.innerHTML = "Loading...";
+                            watchButton.disabled = true;
 
-            watchButton.addEventListener("click", function () {
-                window.open(youtubeUrl, "_blank");
-                
-                if (!timerStarted) {
-                    timerStarted = true;
-                    watchButton.textContent = "Watching...";
+                            setTimeout(function () {
+                                unlockButton.disabled = false;
+                                unlockButton.classList.add("enabled");
+                                watchButton.innerHTML = "Watch & Follow to Get Content"; // Restore text
+                                watchButton.disabled = false;
+                            }, 25000);
+                        }
+                    });
 
-                    setTimeout(() => {
-                        unlockButton.removeAttribute("disabled");
-                    }, 25000); // Unlocks after 25 seconds
-                }
-            });
-
-            unlockButton.addEventListener("click", function () {
-                if (!unlockButton.hasAttribute("disabled")) {
-                    window.location.href = contentLink;
-                }
-            });
-        })
-        .catch(error => console.error(error));
-</script>
+                    unlockButton.addEventListener("click", function () {
+                        if (!unlockButton.disabled) {
+                            window.location.href = contentLink;
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error("Error loading content.json:", error);
+                });
+        }
+    </script>
 
 </body>
 </html>
