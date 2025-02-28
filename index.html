@@ -103,23 +103,25 @@
 
   <script>
     window.onload = function () {
-      // Get the id parameter from the URL
+      // Get the 'key' parameter from the URL, e.g. ?key=godfatherB_alt
       const urlParams = new URLSearchParams(window.location.search);
-      const queryId = urlParams.get('id');
+      const uniqueKey = urlParams.get('key'); // change param name as you like
 
-      if (!queryId) {
-        alert("Invalid or missing content ID!");
+      // If no 'key' is provided, show an error.
+      if (!uniqueKey) {
+        alert("Invalid or missing content key in the URL!");
         return;
       }
 
       fetch("content.json")
         .then(response => response.json())
         .then(data => {
-          // Look up the entry using an exact key match.
-          const entry = data[queryId];
+          // 'data' is the entire content.json object
+          // 'data[uniqueKey]' is the item with that key
+          const entry = data[uniqueKey];
 
           if (!entry) {
-            alert("Video not found in content.json!");
+            alert("Video not found for key: " + uniqueKey);
             return;
           }
 
@@ -127,19 +129,22 @@
           const videoLink = entry.type === "shorts"
             ? `https://youtube.com/shorts/${entry.videoId}`
             : `https://www.youtube.com/watch?v=${entry.videoId}`;
+
           const contentLink = entry.contentLink;
 
-          // Add functionality to the Watch button.
+          // WATCH BUTTON: open the video, then after 25s, enable the Unlock button.
           document.getElementById("watchButton").addEventListener("click", function () {
             this.classList.add("loading");
             window.open(videoLink, "_blank");
+            
+            // Wait 25 seconds before enabling the Unlock button
             setTimeout(() => {
               const unlockBtn = document.getElementById("unlockButton");
               unlockBtn.classList.add("active");
               unlockBtn.addEventListener("click", function () {
                 window.location.href = contentLink;
               });
-            }, 25000);  // Wait 25 seconds before enabling unlock.
+            }, 25000);
           });
         })
         .catch(error => {
