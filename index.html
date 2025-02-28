@@ -115,31 +115,21 @@
       fetch("content.json")
         .then(response => response.json())
         .then(data => {
-          // Try to match the exact key first
-          let entry = data[queryId];
-
-          // If no exact key, loop through and match by videoId
-          if (!entry) {
-            for (let key in data) {
-              if (data[key].videoId === queryId) {
-                entry = data[key];
-                break;
-              }
-            }
-          }
+          // Look up the entry using an exact key match.
+          const entry = data[queryId];
 
           if (!entry) {
             alert("Video not found in content.json!");
             return;
           }
 
-          // Build the YouTube link based on entry type
+          // Build the YouTube link based on entry type.
           const videoLink = entry.type === "shorts"
             ? `https://youtube.com/shorts/${entry.videoId}`
             : `https://www.youtube.com/watch?v=${entry.videoId}`;
           const contentLink = entry.contentLink;
 
-          // Add functionality to the Watch button
+          // Add functionality to the Watch button.
           document.getElementById("watchButton").addEventListener("click", function () {
             this.classList.add("loading");
             window.open(videoLink, "_blank");
@@ -149,7 +139,7 @@
               unlockBtn.addEventListener("click", function () {
                 window.location.href = contentLink;
               });
-            }, 25000);  // Wait 25 seconds before enabling unlock
+            }, 25000);  // Wait 25 seconds before enabling unlock.
           });
         })
         .catch(error => {
