@@ -102,12 +102,35 @@
   </div>
 
   <script>
-    window.onload = function () {
-      // Get the 'key' parameter from the URL, e.g. ?key=godfatherB_alt
-      const urlParams = new URLSearchParams(window.location.search);
-      const uniqueKey = urlParams.get('key'); // change param name as you like
+    // Helper: tries to open the link in an external browser if user is on Instagram/Telegram in-app
+    function openExternalLink(url) {
+      const ua = navigator.userAgent.toLowerCase();
+      const isInstagram = ua.includes("instagram");
+      const isTelegram = ua.includes("telegram");
 
-      // If no 'key' is provided, show an error.
+      // If inside Instagram or Telegram in-app browser, try forcing an external browser
+      if (isInstagram || isTelegram) {
+        // Attempt an Android intent for Chrome
+        if (ua.includes("android")) {
+          // Strips off "https://" or "http://" so we can build the intent
+          const noProtocol = url.replace(/^https?:\/\//, "");
+          // This often opens the default browser (e.g., Chrome)
+          window.location = `intent://${noProtocol}#Intent;scheme=https;end;`;
+        } else {
+          // iOS or fallback: just do a normal location change
+          window.location = url;
+        }
+      } else {
+        // Normal browser
+        window.open(url, "_blank");
+      }
+    }
+
+    window.onload = function () {
+      // Instead of ?id=, we use ?key= (e.g., ?key=godfather1)
+      const urlParams = new URLSearchParams(window.location.search);
+      const uniqueKey = urlParams.get('key');
+
       if (!uniqueKey) {
         alert("Invalid or missing content key in the URL!");
         return;
@@ -116,12 +139,11 @@
       fetch("content.json")
         .then(response => response.json())
         .then(data => {
-          // 'data' is the entire content.json object
-          // 'data[uniqueKey]' is the item with that key
+          // 'data[uniqueKey]' is the entry in content.json
           const entry = data[uniqueKey];
 
           if (!entry) {
-            alert("Video not found for key: " + uniqueKey);
+            alert("Video not found in content.json for key: " + uniqueKey);
             return;
           }
 
@@ -132,12 +154,14 @@
 
           const contentLink = entry.contentLink;
 
-          // WATCH BUTTON: open the video, then after 25s, enable the Unlock button.
+          // WATCH BUTTON
           document.getElementById("watchButton").addEventListener("click", function () {
             this.classList.add("loading");
-            window.open(videoLink, "_blank");
-            
-            // Wait 25 seconds before enabling the Unlock button
+
+            // Open the link externally if possible
+            openExternalLink(videoLink);
+
+            // Wait 25 seconds, then enable unlock button
             setTimeout(() => {
               const unlockBtn = document.getElementById("unlockButton");
               unlockBtn.classList.add("active");
