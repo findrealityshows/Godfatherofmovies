@@ -98,33 +98,67 @@
     <button id="unlockButton" class="btn btn-secondary">🔓 Unlock Content</button>
   </div>
   <script>
-    function openYouTubeApp() {
+    function openYouTubeApp(url) {
       const ua = navigator.userAgent.toLowerCase();
-      const isInstagram = ua.includes("instagram");
-      const isTelegram = ua.includes("telegram");
       const isMobile = /iphone|ipod|ipad|android/.test(ua);
       
-      // YouTube app link
-      const youtubeAppUrl = "vnd.youtube://www.youtube.com";
-      const youtubeWebUrl = "https://www.youtube.com";
-      
       if (isMobile) {
-        // Try opening the YouTube app
-        window.location = youtubeAppUrl;
+        // Open YouTube app if available
+        window.location = `vnd.youtube://${url.split('https://www.youtube.com/watch?v=')[1]}`;
+        
+        // Fallback to browser after a delay
         setTimeout(() => {
-          // Fallback to web if the app doesn't open
-          window.location.href = youtubeWebUrl;
+          window.location.href = url;
         }, 2000);
       } else {
-        // On desktop, open YouTube normally
-        window.location.href = youtubeWebUrl;
+        // Open in normal browser
+        window.location.href = url;
       }
     }
 
-    document.getElementById("watchButton").addEventListener("click", function () {
-      this.classList.add("loading");
-      openYouTubeApp();
-    });
+    window.onload = function () {
+      const urlParams = new URLSearchParams(window.location.search);
+      const uniqueKey = urlParams.get('key');
+
+      if (!uniqueKey) {
+        alert("Invalid or missing content key in the URL!");
+        return;
+      }
+
+      fetch("content.json")
+        .then(response => response.json())
+        .then(data => {
+          const entry = data[uniqueKey];
+
+          if (!entry) {
+            alert("Video not found in content.json for key: " + uniqueKey);
+            return;
+          }
+
+          const videoLink = entry.type === "shorts"
+            ? `https://youtube.com/shorts/${entry.videoId}`
+            : `https://www.youtube.com/watch?v=${entry.videoId}`;
+
+          const contentLink = entry.contentLink;
+
+          document.getElementById("watchButton").addEventListener("click", function () {
+            this.classList.add("loading");
+            openYouTubeApp(videoLink);
+            
+            setTimeout(() => {
+              const unlockBtn = document.getElementById("unlockButton");
+              unlockBtn.classList.add("active");
+              unlockBtn.addEventListener("click", function () {
+                window.location.href = contentLink;
+              });
+            }, 25000);
+          });
+        })
+        .catch(error => {
+          console.error("Error loading content.json:", error);
+          alert("Could not load content.json!");
+        });
+    };
   </script>
 </body>
 </html>
