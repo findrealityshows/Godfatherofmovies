@@ -86,97 +86,45 @@
   </style>
 </head>
 <body>
-
   <div class="container">
     <h1>Locked Content</h1>
     <p>To reach the target page, complete the following steps:</p>
-
     <div class="instructions">
       <p><strong>1.</strong> Click the <strong>Watch & Follow to Get Content</strong> button.</p>
       <p><strong>2.</strong> Follow the channel and <strong>watch for at least 25 seconds.</strong></p>
       <p><strong>3.</strong> Return to unlock the content.</p>
     </div>
-
     <button id="watchButton" class="btn btn-primary">Watch & Follow to Get Content</button>
     <button id="unlockButton" class="btn btn-secondary">🔓 Unlock Content</button>
   </div>
-
   <script>
-    // Helper: tries to open the link in an external browser if user is on Instagram/Telegram in-app
-    function openExternalLink(url) {
+    function openYouTubeApp() {
       const ua = navigator.userAgent.toLowerCase();
       const isInstagram = ua.includes("instagram");
       const isTelegram = ua.includes("telegram");
-
-      // If inside Instagram or Telegram in-app browser, try forcing an external browser
-      if (isInstagram || isTelegram) {
-        // Attempt an Android intent for Chrome
-        if (ua.includes("android")) {
-          // Strips off "https://" or "http://" so we can build the intent
-          const noProtocol = url.replace(/^https?:\/\//, "");
-          // This often opens the default browser (e.g., Chrome)
-          window.location = `intent://${noProtocol}#Intent;scheme=https;end;`;
-        } else {
-          // iOS or fallback: just do a normal location change
-          window.location = url;
-        }
+      const isMobile = /iphone|ipod|ipad|android/.test(ua);
+      
+      // YouTube app link
+      const youtubeAppUrl = "vnd.youtube://www.youtube.com";
+      const youtubeWebUrl = "https://www.youtube.com";
+      
+      if (isMobile) {
+        // Try opening the YouTube app
+        window.location = youtubeAppUrl;
+        setTimeout(() => {
+          // Fallback to web if the app doesn't open
+          window.location.href = youtubeWebUrl;
+        }, 2000);
       } else {
-        // Normal browser
-        window.open(url, "_blank");
+        // On desktop, open YouTube normally
+        window.location.href = youtubeWebUrl;
       }
     }
 
-    window.onload = function () {
-      // Instead of ?id=, we use ?key= (e.g., ?key=godfather1)
-      const urlParams = new URLSearchParams(window.location.search);
-      const uniqueKey = urlParams.get('key');
-
-      if (!uniqueKey) {
-        alert("Invalid or missing content key in the URL!");
-        return;
-      }
-
-      fetch("content.json")
-        .then(response => response.json())
-        .then(data => {
-          // 'data[uniqueKey]' is the entry in content.json
-          const entry = data[uniqueKey];
-
-          if (!entry) {
-            alert("Video not found in content.json for key: " + uniqueKey);
-            return;
-          }
-
-          // Build the YouTube link based on entry type.
-          const videoLink = entry.type === "shorts"
-            ? `https://youtube.com/shorts/${entry.videoId}`
-            : `https://www.youtube.com/watch?v=${entry.videoId}`;
-
-          const contentLink = entry.contentLink;
-
-          // WATCH BUTTON
-          document.getElementById("watchButton").addEventListener("click", function () {
-            this.classList.add("loading");
-
-            // Open the link externally if possible
-            openExternalLink(videoLink);
-
-            // Wait 25 seconds, then enable unlock button
-            setTimeout(() => {
-              const unlockBtn = document.getElementById("unlockButton");
-              unlockBtn.classList.add("active");
-              unlockBtn.addEventListener("click", function () {
-                window.location.href = contentLink;
-              });
-            }, 25000);
-          });
-        })
-        .catch(error => {
-          console.error("Error loading content.json:", error);
-          alert("Could not load content.json!");
-        });
-    };
+    document.getElementById("watchButton").addEventListener("click", function () {
+      this.classList.add("loading");
+      openYouTubeApp();
+    });
   </script>
-
 </body>
 </html>
