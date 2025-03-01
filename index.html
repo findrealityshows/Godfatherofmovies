@@ -25,6 +25,18 @@
       box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
       text-align: center;
     }
+    h1 {
+      font-size: 24px;
+      font-weight: bold;
+    }
+    .instructions {
+      font-size: 16px;
+      text-align: left;
+      margin: 15px 0;
+    }
+    .instructions strong {
+      color: #1E3C72;
+    }
     .btn {
       display: block;
       width: 100%;
@@ -40,31 +52,82 @@
     .btn-primary {
       background: #007bff;
       color: white;
+      position: relative;
+    }
+    .btn-primary.loading::after {
+      content: '';
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      width: 16px;
+      height: 16px;
+      border: 3px solid white;
+      border-top: 3px solid transparent;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    .btn-primary:hover {
+      background: #0056b3;
+    }
+    .btn-secondary {
+      background: #28a745;
+      color: white;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    .btn-secondary.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
   </style>
 </head>
 <body>
+
   <div class="container">
     <h1>Locked Content</h1>
-    <p>Click the button below to watch the video.</p>
-    <button id="watchButton" class="btn btn-primary">Watch & Follow</button>
+    <p>To reach the target page, complete the following steps:</p>
+
+    <div class="instructions">
+      <p><strong>1.</strong> Click the <strong>Watch & Follow to Get Content</strong> button.</p>
+      <p><strong>2.</strong> Follow the channel and <strong>watch for at least 25 seconds.</strong></p>
+      <p><strong>3.</strong> Return to unlock the content.</p>
+    </div>
+
+    <button id="watchButton" class="btn btn-primary">Watch & Follow to Get Content</button>
+    <button id="unlockButton" class="btn btn-secondary">🔓 Unlock Content</button>
   </div>
 
   <script>
-    function openYouTubeApp(url) {
+    // Helper: tries to open the link in an external browser if user is on Instagram/Telegram in-app
+    function openExternalLink(url) {
       const ua = navigator.userAgent.toLowerCase();
-      if (ua.includes("android")) {
-        window.location = `vnd.youtube:${url.split('=')[1]}`;
-        setTimeout(() => { window.location = url; }, 500);
-      } else if (ua.includes("iphone") || ua.includes("ipad")) {
-        window.location = `youtube://${url.split('=')[1]}`;
-        setTimeout(() => { window.location = url; }, 500);
+      const isInstagram = ua.includes("instagram");
+      const isTelegram = ua.includes("telegram");
+
+      // If inside Instagram or Telegram in-app browser, try forcing an external browser
+      if (isInstagram || isTelegram) {
+        // Attempt an Android intent for Chrome
+        if (ua.includes("android")) {
+          // Strips off "https://" or "http://" so we can build the intent
+          const noProtocol = url.replace(/^https?:\/\//, "");
+          // This often opens the default browser (e.g., Chrome)
+          window.location = `intent://${noProtocol}#Intent;scheme=https;end;`;
+        } else {
+          // iOS or fallback: just do a normal location change
+          window.location = url;
+        }
       } else {
-        window.location = url;
+        // Normal browser
+        window.open(url, "_blank");
       }
     }
 
     window.onload = function () {
+      // Instead of ?id=, we use ?key= (e.g., ?key=godfather1)
       const urlParams = new URLSearchParams(window.location.search);
       const uniqueKey = urlParams.get('key');
 
@@ -76,18 +139,36 @@
       fetch("content.json")
         .then(response => response.json())
         .then(data => {
+          // 'data[uniqueKey]' is the entry in content.json
           const entry = data[uniqueKey];
+
           if (!entry) {
-            alert("Video not found for key: " + uniqueKey);
+            alert("Video not found in content.json for key: " + uniqueKey);
             return;
           }
 
+          // Build the YouTube link based on entry type.
           const videoLink = entry.type === "shorts"
             ? `https://youtube.com/shorts/${entry.videoId}`
             : `https://www.youtube.com/watch?v=${entry.videoId}`;
 
+          const contentLink = entry.contentLink;
+
+          // WATCH BUTTON
           document.getElementById("watchButton").addEventListener("click", function () {
-            openYouTubeApp(videoLink);
+            this.classList.add("loading");
+
+            // Open the link externally if possible
+            openExternalLink(videoLink);
+
+            // Wait 25 seconds, then enable unlock button
+            setTimeout(() => {
+              const unlockBtn = document.getElementById("unlockButton");
+              unlockBtn.classList.add("active");
+              unlockBtn.addEventListener("click", function () {
+                window.location.href = contentLink;
+              });
+            }, 25000);
           });
         })
         .catch(error => {
@@ -96,5 +177,6 @@
         });
     };
   </script>
+
 </body>
 </html>
