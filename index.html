@@ -25,18 +25,6 @@
       box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
       text-align: center;
     }
-    h1 {
-      font-size: 24px;
-      font-weight: bold;
-    }
-    .instructions {
-      font-size: 16px;
-      text-align: left;
-      margin: 15px 0;
-    }
-    .instructions strong {
-      color: #1E3C72;
-    }
     .btn {
       display: block;
       width: 100%;
@@ -52,67 +40,27 @@
     .btn-primary {
       background: #007bff;
       color: white;
-      position: relative;
-    }
-    .btn-primary.loading::after {
-      content: '';
-      position: absolute;
-      right: 15px;
-      top: 50%;
-      width: 16px;
-      height: 16px;
-      border: 3px solid white;
-      border-top: 3px solid transparent;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-    .btn-primary:hover {
-      background: #0056b3;
-    }
-    .btn-secondary {
-      background: #28a745;
-      color: white;
-      opacity: 0.5;
-      pointer-events: none;
-    }
-    .btn-secondary.active {
-      opacity: 1;
-      pointer-events: all;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Locked Content</h1>
-    <p>To reach the target page, complete the following steps:</p>
-    <div class="instructions">
-      <p><strong>1.</strong> Click the <strong>Watch & Follow to Get Content</strong> button.</p>
-      <p><strong>2.</strong> Follow the channel and <strong>watch for at least 25 seconds.</strong></p>
-      <p><strong>3.</strong> Return to unlock the content.</p>
-    </div>
-    <button id="watchButton" class="btn btn-primary">Watch & Follow to Get Content</button>
-    <button id="unlockButton" class="btn btn-secondary">🔓 Unlock Content</button>
+    <p>Click the button below to watch the video.</p>
+    <button id="watchButton" class="btn btn-primary">Watch & Follow</button>
   </div>
+
   <script>
     function openYouTubeApp(url) {
       const ua = navigator.userAgent.toLowerCase();
-      const isMobile = /iphone|ipod|ipad|android/.test(ua);
-      
-      if (isMobile) {
-        // Open YouTube app if available
-        window.location = `vnd.youtube://${url.split('https://www.youtube.com/watch?v=')[1]}`;
-        
-        // Fallback to browser after a delay
-        setTimeout(() => {
-          window.location.href = url;
-        }, 2000);
+      if (ua.includes("android")) {
+        window.location = `vnd.youtube:${url.split('=')[1]}`;
+        setTimeout(() => { window.location = url; }, 500);
+      } else if (ua.includes("iphone") || ua.includes("ipad")) {
+        window.location = `youtube://${url.split('=')[1]}`;
+        setTimeout(() => { window.location = url; }, 500);
       } else {
-        // Open in normal browser
-        window.location.href = url;
+        window.location = url;
       }
     }
 
@@ -129,9 +77,8 @@
         .then(response => response.json())
         .then(data => {
           const entry = data[uniqueKey];
-
           if (!entry) {
-            alert("Video not found in content.json for key: " + uniqueKey);
+            alert("Video not found for key: " + uniqueKey);
             return;
           }
 
@@ -139,19 +86,8 @@
             ? `https://youtube.com/shorts/${entry.videoId}`
             : `https://www.youtube.com/watch?v=${entry.videoId}`;
 
-          const contentLink = entry.contentLink;
-
           document.getElementById("watchButton").addEventListener("click", function () {
-            this.classList.add("loading");
             openYouTubeApp(videoLink);
-            
-            setTimeout(() => {
-              const unlockBtn = document.getElementById("unlockButton");
-              unlockBtn.classList.add("active");
-              unlockBtn.addEventListener("click", function () {
-                window.location.href = contentLink;
-              });
-            }, 25000);
           });
         })
         .catch(error => {
